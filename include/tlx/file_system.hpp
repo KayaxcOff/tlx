@@ -7,6 +7,7 @@
 
 #include <tlx/errors.hpp>
 #include <filesystem>
+#include <fstream>
 
 namespace tlx::fs {
     using std::filesystem::path;
@@ -97,6 +98,83 @@ namespace tlx::fs {
         Status write(std::string_view input) const;
     private:
         fs::path m_path;
+    };
+
+    class BinaryWriter {
+    public:
+        explicit BinaryWriter(const std::string& path);
+        BinaryWriter(const BinaryWriter&) = delete;
+        BinaryWriter(BinaryWriter&&) noexcept = default;
+        ~BinaryWriter();
+
+        template<typename T>
+        void write(const T& value) {
+            static_assert(std::is_trivially_copyable_v<T>, "It only works with trivially copyable types.");
+
+            std::byte buffer[sizeof(T)];
+            std::memcpy(buffer, &value, sizeof(T));
+
+            this->m_file.write(reinterpret_cast<const char*>(buffer), sizeof(T));
+            detail::exitIf(!this->m_file.good(), "Write has failed");
+        }
+
+        template<typename T>
+        void write_array(const T* data, const std::size_t count) {
+            for (std::size_t i = 0; i < count; ++i) {
+                write(data[i]);
+            }
+        }
+
+        void write_raw(const void* data, std::size_t size);
+
+        [[nodiscard]]
+        std::size_t tell();
+
+        BinaryWriter& operator=(const BinaryWriter&) = delete;
+        BinaryWriter& operator=(BinaryWriter&&) noexcept = default;
+    private:
+        std::ofstream m_file;
+    };
+
+    class BinaryReader {
+    public:
+        explicit BinaryReader(const std::string& path);
+        BinaryReader(const BinaryReader&) = delete;
+        BinaryReader(BinaryReader&&) noexcept = default;
+        ~BinaryReader();
+
+        template<typename T>
+        [[nodiscard]] T read() {
+            static_assert(std::is_trivially_copyable_v<T>, "BinaryReader::read It only works with trivially copyable types.");
+            std::byte buffer[sizeof(T)];
+            this->m_file.read(reinterpret_cast<char*>(buffer), sizeof(T));
+            detail::exitIf(!this->m_file.good(), "BinaryReader: read failed (end of file / corrupt data)");
+
+            T value;
+            std::memcpy(&value, buffer, sizeof(T));
+            return value;
+        }
+
+        template<typename T>
+        void read_array(T* out, const std::size_t count) {
+            for (std::size_t i = 0; i < count; ++i) {
+                out[i] = read<T>();
+            }
+        }
+
+        void read_raw(void* out, std::size_t size);
+
+        [[nodiscard]]
+        bool eof() const;
+
+        [[nodiscard]]
+        std::size_t tell();
+
+        BinaryReader& operator=(const BinaryReader&) = delete;
+        BinaryReader& operator=(BinaryReader&&) noexcept = default;
+
+    private:
+        std::ifstream m_file;
     };
 } //namespace tlx::fs
 

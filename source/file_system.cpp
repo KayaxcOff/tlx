@@ -82,3 +82,47 @@ Status File::write(const std::string_view input) const {
 
     return Success();
 }
+
+BinaryWriter::BinaryWriter(const std::string &path) {
+    this->m_file = std::ofstream(path, std::ios::binary | std::ios::out | std::ios::trunc);
+    detail::exitIf(!this->m_file.is_open(), "Cannot open file");
+}
+
+BinaryWriter::~BinaryWriter() {
+    if (this->m_file.is_open()) {
+        this->m_file.close();
+    }
+}
+
+void BinaryWriter::write_raw(const void *data, const std::size_t size) {
+    this->m_file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
+    detail::exitIf(!this->m_file.good(), "Write raw failed");
+}
+
+std::size_t BinaryWriter::tell() {
+    return this->m_file.tellp();
+}
+
+BinaryReader::BinaryReader(const std::string &path) {
+    this->m_file = std::ifstream(path, std::ios::binary);
+    detail::exitIf(!this->m_file.is_open(), "Cannot open file");
+}
+
+BinaryReader::~BinaryReader() {
+    if (this->m_file.is_open()) {
+        this->m_file.close();
+    }
+}
+
+void BinaryReader::read_raw(void *out, const std::size_t size) {
+    this->m_file.read(static_cast<char*>(out), static_cast<std::streamsize>(size));
+    detail::exitIf(!this->m_file.good(), "BinaryReader: RAW read failed");
+}
+
+bool BinaryReader::eof() const {
+    return this->m_file.eof();
+}
+
+std::size_t BinaryReader::tell() {
+    return this->m_file.tellg();
+}
