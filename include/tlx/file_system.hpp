@@ -100,13 +100,30 @@ namespace tlx::fs {
         fs::path m_path;
     };
 
+    /**
+     * @brief Binary file writer for efficient serialization of binary data.
+     *
+     * This class provides a convenient interface for writing binary data to a file.
+     * It supports trivially copyable types and raw byte writing.
+     */
     class BinaryWriter {
     public:
+        /**
+         * @brief Constructs a BinaryWriter and opens the specified file.
+         *
+         * @param path Path to the output file.
+         */
         explicit BinaryWriter(const std::string& path);
         BinaryWriter(const BinaryWriter&) = delete;
         BinaryWriter(BinaryWriter&&) noexcept = default;
         ~BinaryWriter();
 
+        /**
+         * @brief Writes a single value to the file in binary format.
+         *
+         * @tparam T Must be a trivially copyable type.
+         * @param value The value to write.
+         */
         template<typename T>
         void write(const T& value) {
             static_assert(std::is_trivially_copyable_v<T>, "It only works with trivially copyable types.");
@@ -118,15 +135,32 @@ namespace tlx::fs {
             detail::exitIf(!this->m_file.good(), "Write has failed");
         }
 
+        /**
+         * @brief Writes an array of values to the file.
+         *
+         * @tparam T Element type (must be trivially copyable).
+         * @param data  Pointer to the array.
+         * @param count Number of elements to write.
+         */
         template<typename T>
         void write_array(const T* data, const std::size_t count) {
             for (std::size_t i = 0; i < count; ++i) {
-                write(data[i]);
+                this->write(data[i]);
             }
         }
 
+        /**
+         * @brief Writes raw bytes to the file.
+         *
+         * @param data Pointer to the raw data.
+         * @param size Number of bytes to write.
+         */
         void write_raw(const void* data, std::size_t size);
 
+        /**
+         * @brief Returns the current write position in the file.
+         * @return Current position (in bytes) from the beginning of the file.
+         */
         [[nodiscard]]
         std::size_t tell();
 
@@ -136,13 +170,30 @@ namespace tlx::fs {
         std::ofstream m_file;
     };
 
+    /**
+     * @brief Binary file reader for efficient deserialization of binary data.
+     *
+     * This class provides a convenient interface for reading binary data from a file.
+     * It supports trivially copyable types and raw byte reading.
+     */
     class BinaryReader {
     public:
+        /**
+         * @brief Constructs a BinaryReader and opens the specified file.
+         *
+         * @param path Path to the input file.
+         */
         explicit BinaryReader(const std::string& path);
         BinaryReader(const BinaryReader&) = delete;
         BinaryReader(BinaryReader&&) noexcept = default;
         ~BinaryReader();
 
+        /**
+         * @brief Reads a single value of type `T` from the file.
+         *
+         * @tparam T Must be a trivially copyable type.
+         * @return The value read from the file.
+         */
         template<typename T>
         [[nodiscard]] T read() {
             static_assert(std::is_trivially_copyable_v<T>, "BinaryReader::read It only works with trivially copyable types.");
@@ -155,6 +206,13 @@ namespace tlx::fs {
             return value;
         }
 
+        /**
+         * @brief Reads an array of values from the file.
+         *
+         * @tparam T Element type (must be trivially copyable).
+         * @param out   Pointer to the output array.
+         * @param count Number of elements to read.
+         */
         template<typename T>
         void read_array(T* out, const std::size_t count) {
             for (std::size_t i = 0; i < count; ++i) {
@@ -162,11 +220,25 @@ namespace tlx::fs {
             }
         }
 
+        /**
+         * @brief Reads raw bytes from the file.
+         *
+         * @param out  Pointer to the buffer where data will be written.
+         * @param size Number of bytes to read.
+         */
         void read_raw(void* out, std::size_t size);
 
+        /**
+         * @brief Checks if the end of the file has been reached.
+         * @return `true` if EOF is reached.
+         */
         [[nodiscard]]
         bool eof() const;
 
+        /**
+         * @brief Returns the current read position in the file.
+         * @return Current position (in bytes) from the beginning of the file.
+         */
         [[nodiscard]]
         std::size_t tell();
 

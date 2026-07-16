@@ -7,7 +7,6 @@
 
 #include <tlx/macros.hpp>
 #include <bit>
-#include <cstddef>
 #include <cstdint>
 #if TLX_HAS_CUDA
 #include <cuda_bf16.h>
@@ -543,5 +542,51 @@ namespace tlx {
 
     std::ostream& operator<<(std::ostream& os, const quint8& rhs);
 } //namespace tlx
+
+#include <format>
+
+namespace std {
+    template<>
+    struct formatter<tlx::bfloat16> : formatter<float> {
+        auto format(const tlx::bfloat16& value, format_context& ctx) const {
+            return formatter<float>::format(value, ctx);
+        }
+    };
+
+    template<>
+    struct formatter<tlx::half> : formatter<float> {
+        auto format(const tlx::half& value, format_context& ctx) const {
+            return formatter<float>::format(value, ctx);
+        }
+    };
+
+    template<>
+    struct formatter<tlx::qint8> : formatter<std::int32_t> {
+        auto format(const tlx::qint8& value, format_context& ctx) const {
+            return formatter<std::int32_t>::format(static_cast<std::int32_t>(value), ctx);
+        }
+    };
+
+    template<>
+    struct formatter<tlx::quint8> : formatter<std::int32_t> {
+        auto format(const tlx::quint8& value, format_context& ctx) const {
+            return formatter<std::int32_t>::format(static_cast<std::int32_t>(value), ctx);
+        }
+    };
+
+    template<>
+    struct formatter<tlx::qint16> : formatter<std::int32_t> {
+        auto format(const tlx::qint16& value, format_context& ctx) const {
+            return formatter<std::int32_t>::format(static_cast<std::int32_t>(value), ctx);
+        }
+    };
+
+    template<>
+    struct formatter<tlx::quint16> : formatter<std::int32_t> {
+        auto format(const tlx::quint16& value, format_context& ctx) const {
+            return formatter<std::int32_t>::format(static_cast<std::int32_t>(value), ctx);
+        }
+    };
+} //namespace std
 
 #endif //TLX_TYPES_HPP

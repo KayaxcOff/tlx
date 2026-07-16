@@ -2,15 +2,13 @@
 // Created by muham on 15.07.2026.
 //
 
-#include <tlx/vec.hpp>
-#include <tlx/types.hpp>
+#include <tlx/string.hpp>
+#include <iostream>
 
 int main() {
-    tlx::vec<tlx::half, 3> x1 = {
-        1, 2, 3
-    };
+    tlx::vstring x1("Hello World", 11);
 
-    x1.push_back(1);
+    std::cout << x1 << std::endl;
 
     return 0;
 }
