@@ -39,7 +39,7 @@ namespace tlx {
         /**
          * @brief Constructs an empty string view.
          */
-        TLX_HD vstring() noexcept {
+        TLX_HD constexpr vstring() noexcept {
             this->m_data = nullptr;
             this->m_size = 0;
         }
@@ -49,7 +49,7 @@ namespace tlx {
          * @param data Pointer to the character data.
          * @param size Length of the string in bytes (excluding null terminator).
          */
-        TLX_HD vstring(const char* data, const std::size_t size) noexcept {
+        TLX_HD constexpr vstring(const char* data, const std::size_t size) noexcept {
             this->m_data = data;
             this->m_size = size;
         }
@@ -57,37 +57,37 @@ namespace tlx {
          * @brief Constructs a string view from a string literal.
          */
         template<std::size_t N>
-        TLX_HD vstring(const char (&literal)[N]) noexcept {
+        TLX_HD constexpr vstring(const char (&literal)[N]) noexcept {
             this->m_data = literal;
             this->m_size = N - 1;
         }
         /**
          * @brief Constructs a string view from a `std::string`.
          */
-        TLX_HOST vstring(const std::string& string) noexcept {
+        TLX_HOST constexpr vstring(const std::string& string) noexcept {
             this->m_data = string.data();
             this->m_size = string.size();
         }
-        TLX_HD vstring(const vstring&) = default;
-        TLX_HD vstring(vstring&&) noexcept = default;
+        TLX_HD constexpr vstring(const vstring&) = default;
+        TLX_HD constexpr vstring(vstring&&) noexcept = default;
         TLX_HD ~vstring() = default;
 
         /**
          * @brief Returns a pointer to the underlying character data.
          */
         [[nodiscard]]
-        TLX_HD const char* data() const noexcept {
+        TLX_HD constexpr const char* c() const noexcept {
             return this->m_data;
         }
         /**
          * @brief Checks whether the string view is empty.
          */
         [[nodiscard]]
-        TLX_HD std::size_t size() const noexcept {
+        TLX_HD constexpr std::size_t size() const noexcept {
             return this->m_size;
         }
         [[nodiscard]]
-        TLX_HD bool empty() const noexcept {
+        TLX_HD constexpr bool empty() const noexcept {
             return this->m_size == 0;
         }
         /**
@@ -98,7 +98,7 @@ namespace tlx {
          * @return A new `vstring` representing the substring.
          */
         [[nodiscard]]
-        TLX_HD vstring substr(const std::size_t offset, const std::size_t count) const {
+        TLX_HD constexpr vstring substr(const std::size_t offset, const std::size_t count) const {
             if (offset > this->m_size) {
                 return {};
             }
@@ -106,26 +106,26 @@ namespace tlx {
             return {this->m_data + offset, actual_count};
         }
         [[nodiscard]]
-        TLX_HD const char* begin() const noexcept {
+        TLX_HD constexpr const char* begin() const noexcept {
             return this->m_data;
         }
         [[nodiscard]]
-        TLX_HD const char* end() const noexcept {
+        TLX_HD constexpr const char* end() const noexcept {
             return this->m_data + this->m_size;
         }
 
         /**
          * @brief Implicit conversion to `std::string_view`.
          */
-        TLX_HOST operator std::string_view() const noexcept {
+        TLX_HOST constexpr operator std::string_view() const noexcept {
             return {this->m_data, this->m_size};
         }
 
         [[nodiscard]]
-        TLX_HD const char& operator[](const std::size_t index) const noexcept {
+        TLX_HD constexpr const char& operator[](const std::size_t index) const noexcept {
             return this->m_data[index];
         }
-        TLX_HD bool operator==(const vstring& other) const noexcept {
+        TLX_HD constexpr bool operator==(const vstring& other) const noexcept {
             if (this->m_size != other.m_size) {
                 return false;
             }
@@ -140,7 +140,7 @@ namespace tlx {
             }
             return true;
         }
-        TLX_HD bool operator!=(const vstring& other) const noexcept {
+        TLX_HD constexpr bool operator!=(const vstring& other) const noexcept {
             return !(*this == other);
         }
     private:
