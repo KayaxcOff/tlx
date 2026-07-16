@@ -13,6 +13,7 @@
 #endif //#include <cuda_bf16.h>
 #include <iosfwd>
 #include <limits>
+#include <immintrin.h>
 
 namespace tlx {
     using int8      = signed char;
@@ -541,6 +542,91 @@ namespace tlx {
     };
 
     std::ostream& operator<<(std::ostream& os, const quint8& rhs);
+
+    struct vec8f {
+        vec8f();
+        vec8f(const float* x);
+        vec8f(__m256 x);
+
+        void store(float* x) const;
+
+        operator __m256() const;
+
+        vec8f operator+(const vec8f& other) const;
+        vec8f operator-(const vec8f& other) const;
+        vec8f operator*(const vec8f& other) const;
+        vec8f operator/(const vec8f& other) const;
+
+        vec8f& operator+=(const vec8f& other);
+        vec8f& operator-=(const vec8f& other);
+        vec8f& operator*=(const vec8f& other);
+        vec8f& operator/=(const vec8f& other);
+
+        vec8f operator==(const vec8f& other) const;
+        vec8f operator!=(const vec8f& other) const;
+        vec8f operator<(const vec8f& other) const;
+        vec8f operator<=(const vec8f& other) const;
+        vec8f operator>(const vec8f& other) const;
+        vec8f operator>=(const vec8f& other) const;
+    private:
+        __m256 reg;
+    };
+
+    struct vec8i {
+        vec8i(const std::int32_t* x);
+        vec8i(__m256i x);
+
+        void store(std::int32_t* x) const;
+
+        operator __m256i() const;
+
+        vec8i operator+(const vec8i& other) const;
+        vec8i operator-(const vec8i& other) const;
+        vec8i operator*(const vec8i& other) const;
+        vec8i operator/(const vec8i& other) const;
+
+        vec8i& operator+=(const vec8i& other);
+        vec8i& operator-=(const vec8i& other);
+        vec8i& operator*=(const vec8i& other);
+        vec8i& operator/=(const vec8i& other);
+
+        vec8i operator==(const vec8i& other) const;
+        vec8i operator!=(const vec8i& other) const;
+        vec8i operator<(const vec8i& other) const;
+        vec8i operator<=(const vec8i& other) const;
+        vec8i operator>(const vec8i& other) const;
+        vec8i operator>=(const vec8i& other) const;
+    private:
+        __m256i reg;
+    };
+
+    struct vec4d {
+        vec4d(const double* x);
+        vec4d(__m256d x);
+
+        void store(double* x) const;
+
+        operator __m256d() const;
+
+        vec4d operator+(const vec4d& other) const;
+        vec4d operator-(const vec4d& other) const;
+        vec4d operator*(const vec4d& other) const;
+        vec4d operator/(const vec4d& other) const;
+
+        vec4d& operator+=(const vec4d& other);
+        vec4d& operator-=(const vec4d& other);
+        vec4d& operator*=(const vec4d& other);
+        vec4d& operator/=(const vec4d& other);
+
+        vec4d operator==(const vec4d& other) const;
+        vec4d operator!=(const vec4d& other) const;
+        vec4d operator<(const vec4d& other) const;
+        vec4d operator<=(const vec4d& other) const;
+        vec4d operator>(const vec4d& other) const;
+        vec4d operator>=(const vec4d& other) const;
+    private:
+        __m256d reg;
+    };
 } //namespace tlx
 
 #include <format>
