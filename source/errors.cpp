@@ -53,7 +53,7 @@ Exception::Exception(std::string message) {
 
 Exception::~Exception() = default;
 
-char const *Exception::what() const {
+char const *Exception::what() const noexcept {
     return this->m_message.c_str();
 }
 

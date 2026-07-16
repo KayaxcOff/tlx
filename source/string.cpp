@@ -4,6 +4,7 @@
 
 #include "tlx/string.hpp"
 #include <iostream>
+#include <cstdint>
 
 namespace tlx {
     std::ostream& operator<<(std::ostream& os, const vstring& string) {

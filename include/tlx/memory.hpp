@@ -9,6 +9,7 @@
 #include <tlx/errors.hpp>
 #include <tlx/utility.hpp>
 #include <cstddef>
+#include <cstdint>
 
 namespace tlx {
     /**

@@ -9,6 +9,7 @@
 #include <exception>
 #include <source_location>
 #include <string>
+#include <cstdint>
 
 namespace tlx {
     /**
@@ -36,7 +37,7 @@ namespace tlx {
          * @return C-style string containing the exception message.
          */
         [[nodiscard]]
-        char const *what() const override;
+        char const *what() const noexcept override;
     private:
         std::string m_message;
     };

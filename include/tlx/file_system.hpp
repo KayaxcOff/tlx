@@ -8,6 +8,7 @@
 #include <tlx/errors.hpp>
 #include <filesystem>
 #include <fstream>
+#include <cstring>
 
 namespace tlx::fs {
     using std::filesystem::path;
@@ -72,7 +73,7 @@ namespace tlx::fs {
          * @return Reference to the stored path.
          */
         [[nodiscard]]
-        const path& path() const;
+        const std::filesystem::path& path() const;
         /**
          * @brief Checks whether the file exists on the filesystem.
          * @return `true` if the file exists.

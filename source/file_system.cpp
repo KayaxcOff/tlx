@@ -43,7 +43,7 @@ File::File(File &&other) noexcept {
 
 File::~File() = default;
 
-const path &File::path() const {
+const std::filesystem::path &File::path() const {
     return this->m_path;
 }
 
