@@ -28,6 +28,7 @@ add_library(TLX STATIC
         source/UTF-8.cpp
         source/file_system.cpp
         source/types.cpp
+        source/string.cpp
 )
 
 target_include_directories(TLX

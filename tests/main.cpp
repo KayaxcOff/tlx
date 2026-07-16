@@ -6,9 +6,11 @@
 #include <iostream>
 
 int main() {
-    tlx::vstring x1("Hello World", 11);
+    const tlx::vstring x1("Hello World", 11);
 
-    std::cout << x1 << std::endl;
+    std::cout << "Value of vstring: " << x1 << std::endl;
+    std::cout << "Size of vstring: " << x1.size() << std::endl;
+    std::cout << "Sizeof of vstring: " << sizeof(x1) << " bytes" << std::endl;
 
     return 0;
 }
