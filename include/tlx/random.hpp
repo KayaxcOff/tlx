@@ -6,50 +6,76 @@
 #define TLX_RANDOM_HPP
 
 #include <tlx/macros.hpp>
+#include <limits>
 
 namespace tlx {
-    class Alea {
+    class xoroshiro128_plus {
     public:
-        TLX_HD TLX_INLINE explicit Alea(const std::uint32_t seed) {
-            this->m_seed = (seed == 0) ? 123456789U : seed;
-        };
-        TLX_HD TLX_INLINE Alea(const Alea &) = delete;
-        TLX_HD TLX_INLINE Alea(Alea &&) noexcept = delete;
-        TLX_HD TLX_INLINE ~Alea() = default;
+        TLX_HD explicit xoroshiro128_plus(std::uint64_t seed) noexcept {
+            this->m_s0 = splitmix64(seed);
+            this->m_s1 = splitmix64(seed);
+        }
 
         [[nodiscard]]
-        TLX_HD TLX_INLINE std::uint32_t seed() const {
-            return this->m_seed;
-        }
-        template<typename T>
-        [[nodiscard]]
-        T next() {
-            std::uint32_t x = this->m_seed;
-            x ^= x << 13;
-            x ^= x >> 17;
-            x ^= x << 5;
-            this->m_seed = x;
+        TLX_HD std::uint64_t next() {
+            const std::uint64_t s0 = this->m_s0;
+            std::uint64_t s1 = this->m_s1;
 
-            if constexpr (std::is_convertible_v<float, T> && !std::is_integral_v<T>) {
-                float rand_f = static_cast<float>(x) / 4294967296.0f;
-                return static_cast<T>(rand_f);
-            } else {
-                return static_cast<T>(x);
-            }
+            const std::uint64_t output = s0 + s1;
+
+            s1 ^= s0;
+
+            this->m_s0 = rotl(s0, 55) ^ s1 ^ (s1 << 14);
+            this->m_s1 = rotl(s1, 36);
+
+            return output;
         }
+
+        [[nodiscard]]
+        TLX_HD static constexpr std::uint64_t rotl(const std::uint64_t x, const int k) {
+            return (x << k) | (x >> (64 - k));
+        }
+
         template<typename T>
         [[nodiscard]]
-        TLX_HD TLX_INLINE T uniform(const T min, const T max) {
-            if constexpr (std::is_convertible_v<float, T> && !std::is_integral_v<T>) {
-                return min + static_cast<T>(next<float>() * static_cast<float>(max - min));
-            } else {
-                const double r = static_cast<double>(next<std::uint32_t>()) / 4294967296.0;
-                return min + static_cast<T>(r * (static_cast<double>(max) - static_cast<double>(min) + 1.0));
-            }
+        TLX_HD T next() {
+            return static_cast<T>(next());
+        }
+
+        TLX_HD std::uint64_t operator()() noexcept {
+            return next();
+        }
+        TLX_HD static constexpr std::uint64_t min() noexcept {
+            return std::numeric_limits<std::uint64_t>::min();
+        }
+        TLX_HD static constexpr std::uint64_t max() noexcept {
+            return std::numeric_limits<std::uint64_t>::max();
+        }
+
+        template<std::floating_point T>
+        TLX_HD T uniform() noexcept;
+
+        template<>
+        [[nodiscard]]
+        TLX_HD float xoroshiro128_plus::uniform<float>() noexcept {
+            constexpr float inv = 1.0f / 16777216.0f;
+
+            return static_cast<float>(next() >> 40) * inv;
         }
 
     private:
-        std::uint32_t m_seed;
+        std::uint64_t m_s0;
+        std::uint64_t m_s1;
+
+        [[nodiscard]]
+        TLX_HD static std::uint64_t splitmix64(std::uint64_t& state) {
+            std::uint64_t z = (state += 0x9e3779b97f4a7c15ULL);
+
+            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+
+            return z ^ (z >> 31);
+        }
     };
 } //namespace tlx
 
