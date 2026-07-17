@@ -9,11 +9,28 @@
 #include <tlx/macros.hpp>
 
 namespace tlx {
+    /**
+     * @brief Philox-4x32-10 pseudo-random number generator.
+     *
+     * A high-quality, counter-based RNG suitable for parallel and GPU use.
+     * It is fast, has good statistical properties, and is deterministic.
+     */
     class philox4x32 {
     public:
+        /**
+         * @brief Constructs the generator with the given seed.
+         *
+         * @param seed 64-bit seed value.
+         */
         TLX_HD explicit philox4x32(const std::uint64_t seed) noexcept : m_counter({0, 0, 0, 0}), m_key({static_cast<std::uint32_t>(seed),static_cast<std::uint32_t>(seed >> 32)}) {}
 
-        template<std::integral T>
+        /**
+         * @brief Generates the next random integer.
+         *
+         * @tparam T Integral type (up to 64-bit).
+         * @return Random integer value.
+         */
+        template<integral T>
         [[nodiscard]]
         TLX_HD T next() noexcept {
             constexpr std::size_t words_needed = (sizeof(T) + sizeof(std::uint32_t) - 1) / sizeof(std::uint32_t);
@@ -36,6 +53,12 @@ namespace tlx {
             }
         }
 
+        /**
+         * @brief Generates a uniform random floating-point number in [0, 1).
+         *
+         * @tparam T Floating-point type (float, double, bfloat16, or half).
+         * @return Uniform random value in range [0, 1).
+         */
         template<float_like T>
         [[nodiscard]]
         TLX_HD T uniform() noexcept {
@@ -50,6 +73,14 @@ namespace tlx {
             }
         }
 
+        /**
+         * @brief Generates a uniform random floating-point number in [min, max).
+         *
+         * @tparam T Floating-point type.
+         * @param min Lower bound (inclusive).
+         * @param max Upper bound (exclusive).
+         * @return Uniform random value in range [min, max).
+         */
         template<float_like T>
         [[nodiscard]]
         TLX_HD T uniform(T min, T max) noexcept {

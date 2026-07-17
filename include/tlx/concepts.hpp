@@ -90,6 +90,9 @@ namespace tlx {
     template<class Ty, class... Args>
     concept constructible_from = __is_nothrow_destructible(Ty) && __is_constructible(Ty, Args...);
 
+    /**
+     * @brief Concept that matches floating-point types including extended formats.
+     */
     template<typename T>
     concept float_like = std::floating_point<T> || std::same_as<T, bfloat16> || std::same_as<T, half>;
 } //namespace tlx
