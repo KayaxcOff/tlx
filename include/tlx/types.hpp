@@ -507,6 +507,11 @@ namespace tlx {
 
     std::ostream& operator<<(std::ostream& os, const quint8& rhs);
 
+    /**
+     * @brief 8-wide single-precision floating-point vector (AVX2).
+     *
+     * Wraps `__m256` for 8x float32 operations.
+     */
     struct vec8f {
         TLX_INLINE vec8f() : reg(_mm256_setzero_ps()) {}
         TLX_INLINE vec8f(const float* x) : reg(_mm256_loadu_ps(x)) {}
@@ -577,6 +582,11 @@ namespace tlx {
         __m256 reg;
     };
 
+    /**
+     * @brief 8-wide 32-bit signed integer vector (AVX2).
+     *
+     * Wraps `__m256i` for 8x int32 operations.
+     */
     struct vec8i {
         TLX_INLINE vec8i() : reg(_mm256_setzero_si256()) {}
         TLX_INLINE vec8i(const std::int32_t* x) : reg(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(x))) {}
@@ -648,6 +658,11 @@ namespace tlx {
         __m256i reg;
     };
 
+    /**
+     * @brief 4-wide double-precision floating-point vector (AVX2).
+     *
+     * Wraps `__m256d` for 4x float64 operations.
+     */
     struct vec4d {
         TLX_INLINE vec4d() : reg(_mm256_setzero_pd()) {}
         TLX_INLINE vec4d(const double* x) : reg(_mm256_loadu_pd(x)) {}
@@ -718,6 +733,11 @@ namespace tlx {
         __m256d reg;
     };
 
+    /**
+     * @brief 16-wide bfloat16 vector (AVX2).
+     *
+     * Wraps `__m256i` for 16x bfloat16 operations.
+     */
     struct vec16bf {
         TLX_INLINE vec16bf() : reg(_mm256_setzero_si256()) {}
         TLX_INLINE vec16bf(const bfloat16* x) : reg(_mm256_setzero_si256()) {
@@ -798,6 +818,11 @@ namespace tlx {
         }
     };
 
+    /**
+     * @brief 16-wide half-precision (fp16) vector (AVX2).
+     *
+     * Wraps `__m256i` for 16x half operations.
+     */
     struct vec16h {
         TLX_INLINE vec16h() : reg(_mm256_setzero_si256()) {}
 
