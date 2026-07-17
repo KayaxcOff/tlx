@@ -221,54 +221,18 @@ namespace tlx {
         TLX_HD TLX_INLINE bool operator>=(const half& other) const { return static_cast<float>(*this) >= static_cast<float>(other); }
 
     private:
-        uint16_t value;
+        std::uint16_t value;
 
-        TLX_HD TLX_INLINE static uint16_t float_to_half_bits(const float f) {
-            const auto x = std::bit_cast<uint32_t>(f);
-            const uint32_t sign = (x >> 16) & 0x8000u;
-            int32_t exp = static_cast<int32_t>((x >> 23) & 0xFFu) - 127 + 15;
-            uint32_t mantissa = x & 0x7FFFFFu;
-
-            // Inf / NaN
-            if (((x >> 23) & 0xFFu) == 0xFFu) {
-                return static_cast<uint16_t>(sign | (mantissa != 0 ? 0x7E00u : 0x7C00u));
-            }
-            if (exp >= 0x1F) {
-                return static_cast<uint16_t>(sign | 0x7C00u);
-            }
-            if (exp <= 0) {
-                if (exp < -10) {
-                    return static_cast<uint16_t>(sign);
-                }
-                mantissa |= 0x800000u;
-                const int shift = 14 - exp;
-                uint32_t half_mantissa = mantissa >> shift;
-                const uint32_t remainder = mantissa & ((1u << shift) - 1u);
-                const uint32_t halfway = 1u << (shift - 1);
-                if (remainder > halfway || (remainder == halfway && (half_mantissa & 1u))) {
-                    half_mantissa++;
-                }
-                return static_cast<uint16_t>(sign | half_mantissa);
-            }
-            uint32_t half_mantissa = mantissa >> 13;
-            const uint32_t remainder = mantissa & 0x1FFFu;
-            if (remainder > 0x1000u || (remainder == 0x1000u && (half_mantissa & 1u))) {
-                half_mantissa++;
-                if (half_mantissa == 0x400u) {
-                    half_mantissa = 0;
-                    exp++;
-                    if (exp >= 0x1F) {
-                        return static_cast<uint16_t>(sign | 0x7C00u);
-                    }
-                }
-            }
-            return static_cast<uint16_t>(sign | (static_cast<uint32_t>(exp) << 10) | half_mantissa);
+        TLX_HD TLX_INLINE static std::uint16_t float_to_half_bits(const float f) {
+            const __m128 f_vec = _mm_set_ss(f);
+            const __m128i h_vec = _mm_cvtps_ph(f_vec, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
+            return static_cast<std::uint16_t>(_mm_cvtsi128_si32(h_vec));
         }
 
-        TLX_HD TLX_INLINE static float half_bits_to_float(const uint16_t h) {
-            const uint32_t sign = static_cast<uint32_t>(h & 0x8000u) << 16;
-            uint32_t exp = (h >> 10) & 0x1Fu;
-            uint32_t mantissa = h & 0x3FFu;
+        TLX_HD TLX_INLINE static float half_bits_to_float(const std::uint16_t h) {
+            const std::uint32_t sign = (h & 0x8000u) << 16;
+            std::uint32_t exp = (h >> 10) & 0x1Fu;
+            std::uint32_t mantissa = h & 0x3FFu;
 
             if (exp == 0) {
                 if (mantissa == 0) {
@@ -280,15 +244,15 @@ namespace tlx {
                     exp--;
                 }
                 mantissa &= 0x3FFu;
-                const uint32_t f_exp = (exp - 15u + 127u) << 23;
-                const uint32_t f_mantissa = mantissa << 13;
+                const std::uint32_t f_exp = (exp - 15u + 127u) << 23;
+                const std::uint32_t f_mantissa = mantissa << 13;
                 return std::bit_cast<float>(sign | f_exp | f_mantissa);
             }
             if (exp == 0x1Fu) {
                 return std::bit_cast<float>(sign | 0x7F800000u | (mantissa << 13));
             }
-            const uint32_t f_exp = (exp - 15u + 127u) << 23;
-            const uint32_t f_mantissa = mantissa << 13;
+            const std::uint32_t f_exp = (exp - 15u + 127u) << 23;
+            const std::uint32_t f_mantissa = mantissa << 13;
             return std::bit_cast<float>(sign | f_exp | f_mantissa);
         }
     };
@@ -626,6 +590,145 @@ namespace tlx {
         vec4d operator>=(const vec4d& other) const;
     private:
         __m256d reg;
+    };
+
+    struct vec16bf {
+        TLX_INLINE vec16bf() : reg(_mm256_setzero_si256()) {}
+        TLX_INLINE vec16bf(const bfloat16* x) : reg(_mm256_setzero_si256()) {
+            this->reg = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
+        }
+        TLX_INLINE vec16bf(const __m256i x) : reg(_mm256_setzero_si256()) {
+            this->reg = x;
+        }
+
+        TLX_INLINE void store(bfloat16* x) const {
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(x), this->reg);
+        }
+
+        TLX_INLINE operator __m256i() const {
+            return this->reg;
+        }
+
+        TLX_INLINE vec16bf operator+(const vec16bf& other) const {
+            const vec8f r_lo = widen_low(this->reg) + widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) + widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+        TLX_INLINE vec16bf operator-(const vec16bf& other) const {
+            const vec8f r_lo = widen_low(this->reg) - widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) - widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+        TLX_INLINE vec16bf operator*(const vec16bf& other) const {
+            const vec8f r_lo = widen_low(this->reg) * widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) * widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+        TLX_INLINE vec16bf operator/(const vec16bf& other) const {
+            const vec8f r_lo = widen_low(this->reg) / widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) / widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+
+        TLX_INLINE vec16bf& operator+=(const vec16bf& other) { *this = *this + other; return *this; }
+        TLX_INLINE vec16bf& operator-=(const vec16bf& other) { *this = *this - other; return *this; }
+        TLX_INLINE vec16bf& operator*=(const vec16bf& other) { *this = *this * other; return *this; }
+        TLX_INLINE vec16bf& operator/=(const vec16bf& other) { *this = *this / other; return *this; }
+
+    private:
+        __m256i reg;
+
+        TLX_INLINE static vec8f widen_low(const __m256i x) {
+            const __m128i lo16 = _mm256_castsi256_si128(x);
+            const __m256i lo32 = _mm256_cvtepu16_epi32(lo16);
+            const __m256i shifted = _mm256_slli_epi32(lo32, 16);
+            return _mm256_castsi256_ps(shifted);
+        }
+        TLX_INLINE static vec8f widen_high(const __m256i x) {
+            const __m128i hi16 = _mm256_extracti128_si256(x, 1);
+            const __m256i hi32 = _mm256_cvtepu16_epi32(hi16);
+            const __m256i shifted = _mm256_slli_epi32(hi32, 16);
+            return _mm256_castsi256_ps(shifted);
+        }
+
+        TLX_INLINE static __m256i narrow_and_combine(const vec8f &lo, const vec8f &hi) {
+            const __m256i lo_bits = _mm256_castps_si256(lo);
+            const __m256i hi_bits = _mm256_castps_si256(hi);
+
+            const __m256i lo_round = _mm256_add_epi32(
+                lo_bits,
+                _mm256_add_epi32(_mm256_set1_epi32(0x7FFF),
+                    _mm256_and_si256(_mm256_srli_epi32(lo_bits, 16), _mm256_set1_epi32(1))));
+            const __m256i hi_round = _mm256_add_epi32(
+                hi_bits,
+                _mm256_add_epi32(_mm256_set1_epi32(0x7FFF),
+                    _mm256_and_si256(_mm256_srli_epi32(hi_bits, 16), _mm256_set1_epi32(1))));
+
+            const __m256i lo_shifted = _mm256_srli_epi32(lo_round, 16);
+            const __m256i hi_shifted = _mm256_srli_epi32(hi_round, 16);
+
+            const __m256i packed = _mm256_packus_epi32(lo_shifted, hi_shifted);
+            return _mm256_permute4x64_epi64(packed, 0xD8);
+        }
+    };
+
+    struct vec16h {
+        TLX_INLINE vec16h() : reg(_mm256_setzero_si256()) {}
+
+        TLX_INLINE explicit vec16h(const half* x) : reg(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(x))) {}
+
+        TLX_INLINE vec16h(const __m256i x) : reg(x) {}
+
+        TLX_INLINE void store(half* x) const {
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(x), this->reg);
+        }
+
+        TLX_INLINE operator __m256i() const { return this->reg; }
+
+        TLX_INLINE static vec8f widen_low(const __m256i x) {
+            const __m128i lo = _mm256_castsi256_si128(x);
+            return _mm256_cvtph_ps(lo);
+        }
+
+        TLX_INLINE static vec8f widen_high(const __m256i x) {
+            const __m128i hi = _mm256_extracti128_si256(x, 1);
+            return _mm256_cvtph_ps(hi);
+        }
+
+        TLX_INLINE static __m256i narrow_and_combine(const vec8f lo, const vec8f hi) {
+            const __m128i lo_h = _mm256_cvtps_ph(lo, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+            const __m128i hi_h = _mm256_cvtps_ph(hi, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+            return _mm256_set_m128i(hi_h, lo_h);
+        }
+
+        TLX_INLINE vec16h operator+(const vec16h& other) const {
+            const vec8f r_lo = widen_low(this->reg) + widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) + widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+        TLX_INLINE vec16h operator-(const vec16h& other) const {
+            const vec8f r_lo = widen_low(this->reg) - widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) - widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+        TLX_INLINE vec16h operator*(const vec16h& other) const {
+            const vec8f r_lo = widen_low(this->reg) * widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) * widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+        TLX_INLINE vec16h operator/(const vec16h& other) const {
+            const vec8f r_lo = widen_low(this->reg) / widen_low(other.reg);
+            const vec8f r_hi = widen_high(this->reg) / widen_high(other.reg);
+            return narrow_and_combine(r_lo, r_hi);
+        }
+
+        TLX_INLINE vec16h& operator+=(const vec16h& other) { *this = *this + other; return *this; }
+        TLX_INLINE vec16h& operator-=(const vec16h& other) { *this = *this - other; return *this; }
+        TLX_INLINE vec16h& operator*=(const vec16h& other) { *this = *this * other; return *this; }
+        TLX_INLINE vec16h& operator/=(const vec16h& other) { *this = *this / other; return *this; }
+
+    private:
+        __m256i reg;
     };
 } //namespace tlx
 

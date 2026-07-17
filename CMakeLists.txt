@@ -20,6 +20,16 @@ if(CMAKE_CUDA_COMPILER)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
+if(NOT MSVC)
+    set(TLX_CPU_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:-mavx2;-mf16c>")
+else()
+    set(TLX_CPU_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:/arch:AVX2>")
+endif()
+
+if(CMAKE_CUDA_COMPILER)
+    set(CMAKE_CUDA_ARCHITECTURES "all-major" CACHE STRING "CUDA architectures to target")
+endif()
+
 add_library(TLX STATIC
         source/time.cpp
         source/memory.cpp
@@ -31,14 +41,14 @@ add_library(TLX STATIC
         source/string.cpp
 )
 
+target_compile_options(TLX PRIVATE ${TLX_CPU_FLAGS})
+
 target_include_directories(TLX
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 if(CMAKE_CUDA_COMPILER)
-    enable_language(CUDA)
-
     find_package(CUDAToolkit REQUIRED)
 
     target_link_libraries(TLX
@@ -50,6 +60,12 @@ if(CMAKE_CUDA_COMPILER)
             PUBLIC
             TLX_HAS_CUDA
     )
+
+    if(NOT MSVC)
+        target_compile_options(TLX PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mf16c>)
+    else()
+        target_compile_options(TLX PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2>)
+    endif()
 endif()
 
 add_executable(TLX_HOST_TEST
@@ -60,6 +76,7 @@ target_link_libraries(TLX_HOST_TEST
         PRIVATE
         TLX
 )
+target_compile_options(TLX_HOST_TEST PRIVATE ${TLX_CPU_FLAGS})
 
 if(CMAKE_CUDA_COMPILER)
 
@@ -71,5 +88,12 @@ if(CMAKE_CUDA_COMPILER)
             PRIVATE
             TLX
     )
+
+    target_compile_options(TLX_CUDA_TEST PRIVATE ${TLX_CPU_FLAGS})
+    if(NOT MSVC)
+        target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mf16c>)
+    else()
+        target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2>)
+    endif()
 
 endif()
