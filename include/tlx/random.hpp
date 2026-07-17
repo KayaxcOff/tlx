@@ -77,6 +77,55 @@ namespace tlx {
             return z ^ (z >> 31);
         }
     };
+
+    class philox4x32 {
+    public:
+        TLX_HD explicit philox4x32(std::uint64_t seed) noexcept;
+
+        template<std::integral T = std::uint32_t>
+        [[nodiscard]]
+        TLX_HD T next() noexcept;
+
+        template<std::floating_point T>
+        [[nodiscard]]
+        TLX_HD T uniform() noexcept;
+
+        template<std::floating_point T>
+        [[nodiscard]]
+        TLX_HD T uniform(T min, T max) noexcept;
+
+    private:
+        struct counter {
+            std::uint32_t x, y, z, w;
+        };
+
+        struct key {
+            std::uint32_t k0, k1;
+        };
+
+        counter m_counter{};
+        key m_key{};
+
+        std::uint32_t m_cache[4];
+        std::uint32_t m_index = 4;
+
+        [[nodiscard]]
+        TLX_HD counter generate(counter ctr, key key) const noexcept;
+
+        TLX_HD void refill() noexcept;
+
+        [[nodiscard]]
+        TLX_HD static constexpr std::uint32_t mul_hi(
+            std::uint32_t a,
+            std::uint32_t b) noexcept;
+
+        [[nodiscard]]
+        TLX_HD static constexpr std::uint32_t mul_lo(
+            std::uint32_t a,
+            std::uint32_t b) noexcept;
+
+        TLX_HD void increment_counter() noexcept;
+    };
 } //namespace tlx
 
 #endif //TLX_RANDOM_HPP

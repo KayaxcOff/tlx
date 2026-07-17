@@ -7,9 +7,5 @@
 #include <iostream>
 
 int main() {
-    tlx::xoroshiro128_plus rng(1);
-
-    std::cout << rng.uniform<tlx::bfloat16>() << std::endl;
-
-    return 0;
+    tlx::philox4x32 rng(1);
 }
