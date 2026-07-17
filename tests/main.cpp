@@ -8,4 +8,8 @@
 
 int main() {
     tlx::philox4x32 rng(1);
+
+    std::cout << rng.uniform<tlx::bfloat16>() << std::endl;
+
+    return 0;
 }

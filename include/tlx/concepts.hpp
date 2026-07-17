@@ -5,6 +5,7 @@
 #ifndef TLX_CONCEPTS_HPP
 #define TLX_CONCEPTS_HPP
 
+#include <tlx/types.hpp>
 #include <concepts>
 #include <type_traits>
 #include <xtr1common>
@@ -88,6 +89,9 @@ namespace tlx {
      */
     template<class Ty, class... Args>
     concept constructible_from = __is_nothrow_destructible(Ty) && __is_constructible(Ty, Args...);
+
+    template<typename T>
+    concept float_like = std::floating_point<T> || std::same_as<T, bfloat16> || std::same_as<T, half>;
 } //namespace tlx
 
 #endif //TLX_CONCEPTS_HPP

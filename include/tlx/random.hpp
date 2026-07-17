@@ -5,94 +5,57 @@
 #ifndef TLX_RANDOM_HPP
 #define TLX_RANDOM_HPP
 
+#include <tlx/concepts.hpp>
 #include <tlx/macros.hpp>
-#include <limits>
 
 namespace tlx {
-    class xoroshiro128_plus {
-    public:
-        TLX_HD explicit xoroshiro128_plus(std::uint64_t seed) noexcept {
-            this->m_s0 = splitmix64(seed);
-            this->m_s1 = splitmix64(seed);
-        }
-
-        [[nodiscard]]
-        TLX_HD std::uint64_t next() {
-            const std::uint64_t s0 = this->m_s0;
-            std::uint64_t s1 = this->m_s1;
-
-            const std::uint64_t output = s0 + s1;
-
-            s1 ^= s0;
-
-            this->m_s0 = rotl(s0, 55) ^ s1 ^ (s1 << 14);
-            this->m_s1 = rotl(s1, 36);
-
-            return output;
-        }
-
-        [[nodiscard]]
-        TLX_HD static constexpr std::uint64_t rotl(const std::uint64_t x, const int k) {
-            return (x << k) | (x >> (64 - k));
-        }
-
-        template<typename T>
-        [[nodiscard]]
-        TLX_HD T next() {
-            return static_cast<T>(next());
-        }
-
-        TLX_HD std::uint64_t operator()() noexcept {
-            return next();
-        }
-        TLX_HD static constexpr std::uint64_t min() noexcept {
-            return std::numeric_limits<std::uint64_t>::min();
-        }
-        TLX_HD static constexpr std::uint64_t max() noexcept {
-            return std::numeric_limits<std::uint64_t>::max();
-        }
-
-        template<std::floating_point T>
-        TLX_HD T uniform() noexcept;
-
-        template<>
-        [[nodiscard]]
-        TLX_HD float xoroshiro128_plus::uniform<float>() noexcept {
-            constexpr float inv = 1.0f / 16777216.0f;
-
-            return static_cast<float>(next() >> 40) * inv;
-        }
-
-    private:
-        std::uint64_t m_s0;
-        std::uint64_t m_s1;
-
-        [[nodiscard]]
-        TLX_HD static std::uint64_t splitmix64(std::uint64_t& state) {
-            std::uint64_t z = (state += 0x9e3779b97f4a7c15ULL);
-
-            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-
-            return z ^ (z >> 31);
-        }
-    };
-
     class philox4x32 {
     public:
-        TLX_HD explicit philox4x32(std::uint64_t seed) noexcept;
+        TLX_HD explicit philox4x32(const std::uint64_t seed) noexcept : m_counter({0, 0, 0, 0}), m_key({static_cast<std::uint32_t>(seed),static_cast<std::uint32_t>(seed >> 32)}) {}
 
-        template<std::integral T = std::uint32_t>
+        template<std::integral T>
         [[nodiscard]]
-        TLX_HD T next() noexcept;
+        TLX_HD T next() noexcept {
+            constexpr std::size_t words_needed = (sizeof(T) + sizeof(std::uint32_t) - 1) / sizeof(std::uint32_t);
+            static_assert(words_needed >= 1 && words_needed <= 2,
+                "philox4x32::next only integer types up to 64 bits");
 
-        template<std::floating_point T>
-        [[nodiscard]]
-        TLX_HD T uniform() noexcept;
+            if (this->m_index + words_needed > 4) {
+                refill();
+            }
 
-        template<std::floating_point T>
+            if constexpr (words_needed == 1) {
+                const std::uint32_t v = this->m_cache[this->m_index];
+                this->m_index += 1;
+                return static_cast<T>(v);
+            } else {
+                const std::uint64_t lo = this->m_cache[this->m_index];
+                const std::uint64_t hi = this->m_cache[this->m_index + 1];
+                this->m_index += 2;
+                return static_cast<T>(lo | (hi << 32));
+            }
+        }
+
+        template<float_like T>
         [[nodiscard]]
-        TLX_HD T uniform(T min, T max) noexcept;
+        TLX_HD T uniform() noexcept {
+            if constexpr (std::same_as<T, double>) {
+                constexpr double norm = 1.0 / static_cast<double>(std::uint64_t{1} << 53);
+                const std::uint64_t bits = next<std::uint64_t>() >> 11;
+                return static_cast<double>(bits) * norm;
+            } else {
+                constexpr float norm = 1.0f / static_cast<float>(std::uint32_t{1} << 24);
+                const std::uint32_t bits = next<std::uint32_t>() >> 8;
+                return static_cast<T>(static_cast<float>(bits) * norm);
+            }
+        }
+
+        template<float_like T>
+        [[nodiscard]]
+        TLX_HD T uniform(T min, T max) noexcept {
+            const T u = uniform<T>();
+            return min + u * (max - min);
+        }
 
     private:
         struct counter {
@@ -106,25 +69,66 @@ namespace tlx {
         counter m_counter{};
         key m_key{};
 
-        std::uint32_t m_cache[4];
+        std::uint32_t m_cache[4]{};
         std::uint32_t m_index = 4;
 
         [[nodiscard]]
-        TLX_HD counter generate(counter ctr, key key) const noexcept;
+        TLX_HD static  counter generate(counter ctr, key key) noexcept {
+            for (int round = 0; round < 10; ++round) {
 
-        TLX_HD void refill() noexcept;
+                constexpr std::uint32_t BUMP1 = 0xBB67AE85u;
+                constexpr std::uint32_t BUMP0 = 0x9E3779B9u;
+                constexpr std::uint32_t MULT1 = 0xCD9E8D57u;
+                constexpr std::uint32_t MULT0 = 0xD2511F53u;
+
+                const std::uint32_t hi0 = mul_hi(MULT0, ctr.x);
+                const std::uint32_t lo0 = mul_lo(MULT0, ctr.x);
+                const std::uint32_t hi1 = mul_hi(MULT1, ctr.z);
+                const std::uint32_t lo1 = mul_lo(MULT1, ctr.z);
+
+                ctr = counter{
+                    hi1 ^ ctr.y ^ key.k0,
+                    lo1,
+                    hi0 ^ ctr.w ^ key.k1,
+                    lo0
+                };
+
+                key.k0 += BUMP0;
+                key.k1 += BUMP1;
+            }
+            return ctr;
+        }
+
+        TLX_HD void refill() noexcept {
+            const auto [x, y, z, w] = generate(this->m_counter, this->m_key);
+            this->m_cache[0] = x;
+            this->m_cache[1] = y;
+            this->m_cache[2] = z;
+            this->m_cache[3] = w;
+            this->m_index = 0;
+            increment_counter();
+        }
 
         [[nodiscard]]
-        TLX_HD static constexpr std::uint32_t mul_hi(
-            std::uint32_t a,
-            std::uint32_t b) noexcept;
+        TLX_HD static constexpr std::uint32_t mul_hi(const std::uint32_t a, const std::uint32_t b) noexcept {
+            const std::uint64_t product = static_cast<std::uint64_t>(a) * static_cast<std::uint64_t>(b);
+            return static_cast<std::uint32_t>(product >> 32);
+        }
 
         [[nodiscard]]
-        TLX_HD static constexpr std::uint32_t mul_lo(
-            std::uint32_t a,
-            std::uint32_t b) noexcept;
+        TLX_HD static constexpr std::uint32_t mul_lo(const std::uint32_t a, const std::uint32_t b) noexcept {
+            return a * b;
+        }
 
-        TLX_HD void increment_counter() noexcept;
+        TLX_HD void increment_counter() noexcept {
+            if (++this->m_counter.x == 0) {
+                if (++this->m_counter.y == 0) {
+                    if (++this->m_counter.z == 0) {
+                        ++this->m_counter.w;
+                    }
+                }
+            }
+        }
     };
 } //namespace tlx
 
