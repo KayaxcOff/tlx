@@ -7,6 +7,7 @@
 
 #include <tlx/concepts.hpp>
 #include <tlx/macros.hpp>
+#include <cmath>
 
 namespace tlx {
     /**
@@ -86,6 +87,38 @@ namespace tlx {
         TLX_HD T uniform(T min, T max) noexcept {
             const T u = uniform<T>();
             return min + u * (max - min);
+        }
+
+        template<float_like T>
+        [[nodiscard]]
+        TLX_HD T normal() noexcept {
+            if constexpr (std::same_as<T, double>) {
+                constexpr double two_pi = 6.283185307179586476925286766559;
+                auto u1 = uniform<double>();
+                if (u1 < 1e-300) {
+                    u1 = 1e-300;
+                }
+                const auto u2 = uniform<double>();
+                const double r = sqrt(-2.0 * log(u1));
+                const double theta = two_pi * u2;
+                return static_cast<T>(r * cos(theta));
+            } else {
+                constexpr float two_pi = 6.283185307179586f;
+                auto u1 = uniform<float>();
+                if (u1 < 1e-7f) {
+                    u1 = 1e-7f;
+                }
+                const auto u2 = uniform<float>();
+                const float r = sqrtf(-2.0f * logf(u1));
+                const float theta = two_pi * u2;
+                return static_cast<T>(r * cosf(theta));
+            }
+        }
+
+        template<float_like T>
+        [[nodiscard]]
+        TLX_HD T normal(const T mean, const T stddev) noexcept {
+            return mean + stddev * normal<T>();
         }
 
     private:
