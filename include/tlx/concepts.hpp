@@ -44,16 +44,6 @@ namespace tlx {
     concept extend = std::derived_from<T, Base>;
 
     /**
-     * @brief Concept that checks if a type is an arithmetic type.
-     *
-     * Arithmetic types include integral and floating-point types.
-     *
-     * @tparam T The type to check.
-     */
-    template<typename T>
-    concept arithmetic = std::is_arithmetic_v<T>;
-
-    /**
      * @brief Concept that checks if a type is an enumeration.
      *
      * @tparam T The type to check.
@@ -95,6 +85,12 @@ namespace tlx {
      */
     template<typename T>
     concept float_like = std::floating_point<T> || std::same_as<T, bfloat16> || std::same_as<T, half>;
+
+    /**
+     * @brief Arithmetic types (int, float, bfloat16, half...)
+     */
+    template<typename T>
+    concept arithmetic = std::is_integral_v<T> || float_like<T>;
 } //namespace tlx
 
 #endif //TLX_CONCEPTS_HPP
