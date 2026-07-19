@@ -6,11 +6,15 @@
 #define TLX_TYPES_HPP
 
 #include <tlx/macros.hpp>
-#include <bit>
 #include <cstdint>
 #if TLX_HAS_CUDA
-#include <cuda_bf16.h>
-#endif //#include <cuda_bf16.h>
+    #include <cuda_bf16.h>
+    #include <cuda/std/bit>
+    namespace tlx_bit = cuda::std;
+#else //#if TLX_HAS_CUDA
+    #include <bit>
+    namespace tlx_bit = std;
+#endif //#if TLX_HAS_CUDA #else
 #include <iosfwd>
 #include <limits>
 #include <immintrin.h>
@@ -38,7 +42,7 @@ namespace tlx {
     struct alignas(2) bfloat16 {
         TLX_HD bfloat16() = default;
         TLX_HD bfloat16(const float value) {
-            auto f_bits = std::bit_cast<std::uint32_t>(value);
+            auto f_bits = tlx_bit::bit_cast<std::uint32_t>(value);
             f_bits += 0x7FFF + ((f_bits >> 16) & 1);
             this->value = static_cast<std::uint16_t>(f_bits >> 16);
         }
@@ -53,7 +57,7 @@ namespace tlx {
 
         TLX_HD TLX_INLINE operator float() const {
             const std::uint32_t f_bits = static_cast<std::uint32_t>(this->value) << 16;
-            return std::bit_cast<float>(f_bits);
+            return tlx_bit::bit_cast<float>(f_bits);
         }
         #if TLX_HAS_CUDA
             TLX_HD TLX_INLINE operator __nv_bfloat16() const {
@@ -236,7 +240,7 @@ namespace tlx {
 
             if (exp == 0) {
                 if (mantissa == 0) {
-                    return std::bit_cast<float>(sign);
+                    return tlx_bit::bit_cast<float>(sign);
                 }
                 exp = 1;
                 while ((mantissa & 0x400u) == 0) {
@@ -246,14 +250,14 @@ namespace tlx {
                 mantissa &= 0x3FFu;
                 const std::uint32_t f_exp = (exp - 15u + 127u) << 23;
                 const std::uint32_t f_mantissa = mantissa << 13;
-                return std::bit_cast<float>(sign | f_exp | f_mantissa);
+                return tlx_bit::bit_cast<float>(sign | f_exp | f_mantissa);
             }
             if (exp == 0x1Fu) {
-                return std::bit_cast<float>(sign | 0x7F800000u | (mantissa << 13));
+                return tlx_bit::bit_cast<float>(sign | 0x7F800000u | (mantissa << 13));
             }
             const std::uint32_t f_exp = (exp - 15u + 127u) << 23;
             const std::uint32_t f_mantissa = mantissa << 13;
-            return std::bit_cast<float>(sign | f_exp | f_mantissa);
+            return tlx_bit::bit_cast<float>(sign | f_exp | f_mantissa);
         }
     };
 

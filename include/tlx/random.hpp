@@ -7,7 +7,6 @@
 
 #include <tlx/concepts.hpp>
 #include <tlx/macros.hpp>
-#include <cmath>
 
 namespace tlx {
     /**
@@ -111,7 +110,18 @@ namespace tlx {
                 const auto u2 = uniform<float>();
                 const float r = sqrtf(-2.0f * logf(u1));
                 const float theta = two_pi * u2;
+                /*
+                #ifdef __CUDA_ARCH__
+                     printf("u1=%f u2=%f r=%f theta=%f\n", u1, u2, r, theta);
+                #endif //#ifdef __CUDA_ARCH__
                 return static_cast<T>(r * cosf(theta));
+                */
+                const float result_f = r * cosf(theta);
+                const T result_t = static_cast<T>(result_f);
+#ifdef __CUDA_ARCH__
+                printf("result_f=%f result_t_as_float=%f\n", result_f, static_cast<float>(result_t));
+#endif
+                return result_t;
             }
         }
 

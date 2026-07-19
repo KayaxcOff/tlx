@@ -23,7 +23,7 @@ endif()
 if(NOT MSVC)
     set(TLX_CPU_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:-mavx2;-mf16c>")
 else()
-    set(TLX_CPU_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:/arch:AVX2>")
+    set(TLX_CPU_FLAGS "$<$<COMPILE_LANGUAGE:CXX>:/arch:AVX2;/Zc:preprocessor>")
 endif()
 
 if(CMAKE_CUDA_COMPILER)
@@ -42,6 +42,7 @@ add_library(TLX STATIC
 )
 
 target_compile_options(TLX PRIVATE ${TLX_CPU_FLAGS})
+target_compile_options(TLX PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2,/Zc:preprocessor>)
 
 target_include_directories(TLX
         PUBLIC
@@ -64,7 +65,7 @@ if(CMAKE_CUDA_COMPILER)
     if(NOT MSVC)
         target_compile_options(TLX PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mf16c>)
     else()
-        target_compile_options(TLX PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2>)
+        target_compile_options(TLX PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2,/Zc:preprocessor>)
     endif()
 endif()
 
@@ -90,10 +91,11 @@ if(CMAKE_CUDA_COMPILER)
     )
 
     target_compile_options(TLX_CUDA_TEST PRIVATE ${TLX_CPU_FLAGS})
+    target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
     if(NOT MSVC)
         target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mf16c>)
     else()
-        target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2>)
+        target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/arch:AVX2,/Zc:preprocessor>)
     endif()
 
 endif()

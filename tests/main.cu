@@ -26,7 +26,7 @@ __global__ void kernel(std::uint64_t seed,
     philox4x32 r2(seed);
     for (int i = 0; i < N; ++i) {
         printf("[KERNEL] index\n");
-        ubf[i] = static_cast<float>(r2.uniform<bfloat16>());
+        ubf[i] = static_cast<float>(r2.uniform<float>());
     }
     printf("[KERNEL] ubf tamam\n");
 
@@ -152,6 +152,7 @@ int main() {
     }
 
     printf("\n%s\n", ok ? "TUM TESTLER BASARILI" : "BAZI TESTLER BASARISIZ");
+    fflush(stdout);
     assert(ok);
     return 0;
 }
