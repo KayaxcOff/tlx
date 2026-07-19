@@ -91,7 +91,16 @@ if(CMAKE_CUDA_COMPILER)
     )
 
     target_compile_options(TLX_CUDA_TEST PRIVATE ${TLX_CPU_FLAGS})
-    target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+    target_compile_options(TLX_CUDA_TEST PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:
+            --expt-relaxed-constexpr
+            --diag-suppress=20012
+            >
+    )
+    target_compile_options(TLX_CUDA_TEST PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:/wd4556>
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4556>
+    )
     if(NOT MSVC)
         target_compile_options(TLX_CUDA_TEST PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mavx2,-mf16c>)
     else()

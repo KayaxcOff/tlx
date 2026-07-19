@@ -152,7 +152,7 @@ int main() {
     }
 
     printf("\n%s\n", ok ? "TUM TESTLER BASARILI" : "BAZI TESTLER BASARISIZ");
-    fflush(stdout);
+    //fflush(stdout);
     assert(ok);
     return 0;
 }

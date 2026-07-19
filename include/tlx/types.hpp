@@ -850,7 +850,7 @@ namespace tlx {
             return _mm256_cvtph_ps(hi);
         }
 
-        TLX_INLINE static __m256i narrow_and_combine(const vec8f lo, const vec8f hi) {
+        TLX_INLINE static __m256i narrow_and_combine(const vec8f &lo, const vec8f &hi) {
             const __m128i lo_h = _mm256_cvtps_ph(lo, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
             const __m128i hi_h = _mm256_cvtps_ph(hi, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
             return _mm256_set_m128i(hi_h, lo_h);
